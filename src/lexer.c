@@ -72,7 +72,7 @@ struct token lexer_parse_integer()
 
 	tk.value = 0;
 	while (isxdigit(c)) {
-		static const char *s = "01234567890ABCDEF";
+		static const char *s = "0123456789ABCDEF";
 		tk.value = tk.value * base + strchr(s, toupper(c)) - s;
 		lexer_advance_char();
 	}

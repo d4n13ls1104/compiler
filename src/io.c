@@ -1,32 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <err.h>
 
-static size_t fsize(FILE *fp)
+size_t flen(FILE *fp)
 {
 	fseek(fp, 0, SEEK_END);
-	size_t size = ftell(fp);
+	size_t sz = ftell(fp);
 	rewind(fp);
-	return size;
+	return sz;
 }
 
-char *IO_ReadFileToEnd(const char *path)
+char *io_read_all(const char *file_path)
 {
-	FILE *fp = fopen(path, "rb");
+	FILE *fp = fopen(file_path, "rb");
 	if (fp == NULL)
 		return NULL;
-	size_t size = fsize(fp);
 
-	char *ret = calloc(size + 1, sizeof(char));
-	if (ret == NULL)
-		return NULL;
+	size_t  file_len = flen(fp);
+	char   *ret = malloc(file_len + 1);
+	size_t 	bytes_read = fread(ret, sizeof(char), file_len, fp);
 
-	size_t read = fread(ret, sizeof(char), size, fp);
-	if (read < size) {
+	if (bytes_read != file_len) {
 		free(ret);
-		fclose(fp);
-		return NULL;
+		ret = NULL;
 	}
+
 	fclose(fp);
 	return ret;
 }

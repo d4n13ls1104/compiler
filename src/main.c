@@ -1,18 +1,26 @@
+#include "lexer.h"
+#include "util.h"
 #include "io.h"
-#include "lex.h"
 
-#include <err.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+void compile(const char *path)
+{
+	lexer_add_sources(path);
+
+	struct token tk;
+	while ((tk = lexer_next_token()).type != TK_EOF)
+		;
+
+	lexer_clean_sources();
+}
 
 int main(int argc, char *argv[])
 {
 	if (argc != 2)
-		errx(1, "usage: %s <file>\n", argv[0]);
+		die("invalid argc");
 
-	char *data = IO_ReadFileToEnd(argv[1]);
-
-	struct Lexer *l = lexer_create(data);
-
-	lexer_destroy(l);
-
+	compile(argv[1]);
 	return 0;
 }

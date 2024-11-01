@@ -11,7 +11,7 @@ static char *p;
 
 void lexer_advance_char()
 {
-	if (p && *p != '\0')
+	if (p && *p)
 		c = *p++;
 }
 
@@ -63,6 +63,10 @@ struct token lexer_parse_integer()
 	struct token tk;
 	tk.type = TK_INTEGER;
 
+	int sign = c == '-' ? -1 : +1;
+	if (sign < 0)
+		lexer_advance_char();
+
 	unsigned base = 10;
 	if (c == '0') {
 		char next = lexer_peek(1);
@@ -76,6 +80,7 @@ struct token lexer_parse_integer()
 		tk.value = tk.value * base + strchr(s, toupper(c)) - s;
 		lexer_advance_char();
 	}
+	tk.value *= sign;
 
 	return tk;
 }
@@ -114,7 +119,7 @@ struct token lexer_next_token()
 		tk = lexer_parse_keyword();
 		if (tk.type == TK_UNDEFINED)
 			tk = lexer_parse_identifier();
-	} else if (isdigit(c)) {
+	} else if (isdigit(c) || c == '-') {
 		tk = lexer_parse_integer();
 	}
 

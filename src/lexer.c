@@ -124,7 +124,7 @@ struct token lexer_next_token()
 void lexer_add_sources(const char *path)
 {
 	p = io_read_all(path);
-	c = *p;
+	lexer_advance_char();
 }
 
 void lexer_clean_sources()

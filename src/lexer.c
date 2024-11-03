@@ -120,7 +120,9 @@ struct token lexer_next_token()
 	tk.type = TK_UNDEFINED;
 	lexer_advance_whitespace();
 
-	if (isalpha(c)) {
+	if (c == '\0') {
+		tk.type = TK_EOF;
+	} else if (isalpha(c)) {
 		tk = lexer_parse_keyword();
 		if (tk.type == TK_UNDEFINED)
 			tk = lexer_parse_identifier();

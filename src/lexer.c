@@ -87,27 +87,30 @@ struct token lexer_parse_integer()
 	return tk;
 }
 
+/* note: maybe add anonymous functions at some point */
+int ident_cond(int c)
+{
+	return isalpha(c) || c == '_';
+}
+
 struct token lexer_parse_identifier()
 {
 	struct token tk;
 	tk.type = TK_UNDEFINED;
 
-	if (isalpha(c) || c != '_')
-		tk.type = TK_IDENTIFIER;
+	if (!ident_cond())
+		return tk;
+
+	tk.type = TK_IDENTIFIER;
 
 	/* dynamic allocation not yet supported */
-	int i;
-	char buffer[4096];
-	for (i = 0; i < 4096; i++) {
-		if (c == '\0' || (!isalpha(c) && c != '_'))
-			break;
-		buffer[i] = c;
-		lexer_advance_char();
-	}
-	buffer[i] = '\0';
+	#define IDENT_MAXLEN 4096
+	char buffer[IDENT_MAXLEN];
+	strncpy_ex(buffer, p, IDENT_MAXLEN, &ident_cond);
+	lexer_advance_many(strlen(buffer));
 
 	/* TODO: implement symbol table */
-	printf("parsed ident: '%s'\n", buffer);
+	printf("IDENTIFIER: '%s'\n", buffer);
 	return tk;
 }
 

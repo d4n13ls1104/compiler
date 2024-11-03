@@ -67,11 +67,13 @@ struct token lexer_parse_integer()
 	if (sign < 0)
 		lexer_advance_char();
 
-	unsigned base = 10;
+	int base = 10;
 	if (c == '0') {
 		char next = lexer_peek(1);
 		base = 	next == 'x' ? 16 :
-				next == 'b' ? 2  : 10;
+				next == 'b' ? 2  : 0;
+		if (base)
+			lexer_advance_many(2);
 	}
 
 	tk.value = 0;

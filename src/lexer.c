@@ -1,146 +1,186 @@
+#include "util.h"
 #include "lexer.h"
-#include "io.h"
-#include "sym.h"
 
-#include <string.h>
-#include <stdlib.h>
 #include <ctype.h>
+#include <stdio.h>
+#include <string.h>
 
-static int c;
-static char *p;
+static u8 c;
+static u8 * src;
 
-void lexer_advance_char()
+u0 lexer_load_source(u8 * path)
 {
-	if (p && *p)
-		c = *p++;
+  src = readfile(path);
+  c = *src;
 }
 
-void lexer_advance_many(int i)
+/* harden later */
+u8 peek(i64 i)
 {
-	while (i--)
-		lexer_advance_char();
+  return src[i];
 }
 
-void lexer_advance_whitespace()
+u0 seek(i64 i)
 {
-	while (isspace(c))
-		lexer_advance_char();
+  src += i;
+  c = *src;
 }
 
-void lexer_advance_line()
+u0 seekwsp()
 {
-	while (c && c != '\n')
-		lexer_advance_char();
+  while (isspace(c))
+    seek(1);
 }
 
-char lexer_peek(int i)
+i64 identifier(u8 s[MAXSTR])
 {
-	if (c == '\0')
-		return c;
-	return p[i];
+  i64 i;
+
+  i = 0;
+  while (i < MAXSTR && (isalnum(c) || c == '_')) {
+    s[i++] = c;
+    seek(1);
+  }
+  s[i] = '\0';
+
+  return i;
 }
 
-struct token lexer_parse_keyword()
+u64 base()
 {
-	struct token tk;
-	tk.type = TK_UNDEFINED;
+  u64 i;
 
-	for (int i = 0; i < MAXKEYWORDS; i++) {
-		symstruct_t sym = keywords[i];
-		if (strstr(p, sym.key) == p) {
-			tk.type = TK_KEYWORD;
-			tk.value = sym.value;
-			lexer_advance_many(strlen(sym.key));
-			break;
-		}
-	}
+  i = 10;
+  if (c == '0') {
+    if (peek(1) == 'x')
+      i = 16;
+    else if (peek(1) == 'b')
+      i = 2;
+    if (i != 10)
+      seek(2);
+    return i;
+  }
 
-	return tk;
+  return i;
 }
 
-struct token lexer_parse_integer()
+u64 integer()
 {
-	struct token tk;
-	tk.type = TK_INTEGER;
+  u64 i;
+  u64 xx;
 
-	int sign = c == '-' ? -1 : +1;
-	if (sign < 0)
-		lexer_advance_char();
+  i = 0;
+  xx = base();
+  while (isxdigit(c)) {
+    static i8 * s = "0123456789ABCDEF";
+    i = i * xx + strchr(s, toupper(c)) - s;
+    seek(1);
+  }
 
-	int base = 10;
-	if (c == '0') {
-		char next = lexer_peek(1);
-		base = 	next == 'x' ? 16 :
-				next == 'b' ? 2  : 0;
-		if (base)
-			lexer_advance_many(2);
-	}
-
-	tk.value = 0;
-	while (isxdigit(c)) {
-		static const char *s = "0123456789ABCDEF";
-		tk.value = tk.value * base + strchr(s, toupper(c)) - s;
-		lexer_advance_char();
-	}
-	tk.value *= sign;
-
-	return tk;
+  return i;
 }
 
-/* note: maybe add anonymous functions at some point */
-int ident_cond(int c)
+u64 keyword()
 {
-	return isalpha(c) || c == '_';
+  u64  i;
+  u64  len;
+  u8 * str;
+
+  for (i = 0; i < MAXKW; i++) {
+    str = kw[i];
+    len = strlen(str);
+    if (!strncmp(src, str, len)) {
+      seek(len);
+      return i;
+    }
+  }
+
+  return -1;
 }
 
-struct token lexer_parse_identifier()
+u64 lex(u64 * i, u8 s[MAXSTR])
 {
-	struct token tk;
-	tk.type = TK_UNDEFINED;
+  seekwsp();
 
-	if (!ident_cond())
-		return tk;
+  *i = c;
+  s[0] = c;
+  s[1] = 0;
 
-	tk.type = TK_IDENTIFIER;
+  switch (tolower(c)) {
+  case '\0':
+    return TK_EOF;
+  case '+':
+  case '-':
+  case '*':
+  case '/':
+  case '%':
+  case '=':
+  case '<':
+  case '>':
+  case '!':
+    seek(1);
+    return TK_OPERATOR;
+  case ';':
+  case ',':
+  case '(':
+  case ')':
+  case '{':
+  case '}':
+  case '[':
+  case ']':
+  case '\'':
+  case '\"':
+    seek(1);
+    return TK_SEPARATOR;
+  case '0':
+  case '1':
+  case '2':
+  case '3':
+  case '4':
+  case '5':
+  case '6':
+  case '7':
+  case '8':
+  case '9':
+    *i = integer();
+    return TK_INTEGER;
+  case '_':
+  case 'a':
+  case 'b':
+  case 'c':
+  case 'd':
+  case 'e':
+  case 'f':
+  case 'g':
+  case 'h':
+  case 'i':
+  case 'j':
+  case 'k':
+  case 'l':
+  case 'm':
+  case 'n':
+  case 'o':
+  case 'p':
+  case 'q':
+  case 'r':
+  case 's':
+  case 't':
+  case 'u':
+  case 'v':
+  case 'w':
+  case 'x':
+  case 'y':
+  case 'z':
+    *i = keyword();
+    if (*i < MAXKW)
+      return TK_KEYWORD;
+    else {
+      *i = identifier(s);
+      return TK_IDENTIFIER;
+    }
+	break;
 
-	/* dynamic allocation not yet supported */
-	#define IDENT_MAXLEN 4096
-	char buffer[IDENT_MAXLEN];
-	strncpy_ex(buffer, p, IDENT_MAXLEN, &ident_cond);
-	lexer_advance_many(strlen(buffer));
-
-	/* TODO: implement symbol table */
-	printf("IDENTIFIER: '%s'\n", buffer);
-	return tk;
-}
-
-struct token lexer_next_token()
-{
-	struct token tk;
-	tk.type = TK_UNDEFINED;
-	lexer_advance_whitespace();
-
-	if (c == '\0') {
-		tk.type = TK_EOF;
-	} else if (isalpha(c)) {
-		tk = lexer_parse_keyword();
-		if (tk.type == TK_UNDEFINED)
-			tk = lexer_parse_identifier();
-	} else if (isdigit(c) || c == '-') {
-		tk = lexer_parse_integer();
-	}
-
-	return tk;
-}
-
-void lexer_add_sources(const char *path)
-{
-	p = io_read_all(path);
-	c = *p;
-}
-
-void lexer_clean_sources()
-{
-	c = 0;
-	free(p);
+  default:
+    return TK_UNKNOWN;
+  }
 }

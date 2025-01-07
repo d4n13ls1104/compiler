@@ -1,0 +1,17 @@
+static u64 sym_top = 0;
+static u64 sym_value[MAXSYM];
+static u64 sym_address[MAXSYM];
+static u64 sym_datatype[MAXSYM];
+static u8  sym_name[MAXSYM][MAXSTR];
+
+static u64 data_segment = 0x2000;
+
+u0 symtab_add_symbol(u8 * name, u64 dt)
+{
+  strcpy(sym_name[sym_top], name);
+  sym_datatype[sym_top] = dt;
+  sym_address[sym_top] = data_segment;
+  data_segment += atoi(kw[dt] + 1) / 8;
+  sym_top = sym_top + 1;
+}
+

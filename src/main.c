@@ -1,26 +1,34 @@
-#include "lexer.h"
 #include "util.h"
-#include "io.h"
+#include "lexer.h"
+#include "sym.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
-void compile(const char *path)
+u0 printf_token(u64 type, u64 data, u8 * str)
 {
-	lexer_add_sources(path);
-
-	struct token tk;
-	while ((tk = lexer_next_token()).type != TK_EOF)
-		;
-
-	lexer_clean_sources();
+	printf("type: %s, data: 0x%016lX, str: '%s'\n",
+			token_type_to_str(type), data, str);
 }
 
-int main(int argc, char *argv[])
+u0 cc(u8 * path)
+{
+	u8  le[MAXSTR];
+	u64 type, data;
+
+	lexer_load_source(path);
+
+	while ((type = lex(&data, le)) != TK_EOF)
+		printf_token(type, data, le);
+		
+	/*printf_symtab();*/
+}
+
+int main(int argc, char * argv[])
 {
 	if (argc != 2)
 		die("invalid argc");
-
-	compile(argv[1]);
+	cc(argv[1]);
 	return 0;
 }
